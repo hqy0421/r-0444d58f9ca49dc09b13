@@ -17,6 +17,27 @@ There are several kinds of operations:
 Currently implemented operations can be found at
 http://www.scribd.com/doc/147247069/Bubbles-Brewery2-Operations.
 
+Editing
+=======
+
+.. function:: as_editable(object[, key])
+
+    Returns an editable view of the object. The view exposes the same public
+    fields, rows and records as `object`, but the identity column (primary key)
+    is hidden. Its records can be modified and committed back to the original
+    rows with ``commit()``.
+
+    `key` is an optional list of columns that uniquely identify a row. If not
+    specified, the primary key is used; on SQLite a table without a primary key
+    falls back to the implicit ``rowid``.
+
+    Results that can not be uniquely written back (aggregation, join,
+    distinct, union, ...) are returned as explicitly read-only objects.
+
+    Signatures: ``sql_table``, ``sql``
+
+    See :doc:`objects` for details.
+
 Metadata
 ========
 

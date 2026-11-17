@@ -234,6 +234,17 @@ def as_dict(ctx, obj, key=None, value=None):
     raise NotImplementedError
 
 #############################################################################
+# Editing
+
+@operation
+def as_editable(ctx, obj, key=None):
+    """Returns an editable view of `obj`. The view exposes the same public
+    fields, rows and records as `obj`, but its records can be modified and
+    committed back to the original rows. Results that can not be uniquely
+    written back are read-only."""
+    raise NotImplementedError
+
+#############################################################################
 # Assertions
 
 @operation

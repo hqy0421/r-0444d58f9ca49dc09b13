@@ -1,6 +1,42 @@
 Changes in Bubbles
 ==================
 
+Unreleased
+==========
+
+Overview
+--------
+
+* Optional editable SQL data objects: `SQLTable.as_editable()` (or the
+  `as_editable` operation) returns a view that hides the identity column and
+  allows record-by-record correction with conflict detection and atomic batch
+  submission. Ordinary reads are not changed.
+
+Objects
+-------
+
+* Added `bubbles.backends.sql.editable` with `EditableSQLTable`,
+  `EditableSQLStatement` and `EditableRecord`
+* An editable view exposes only the selected public layout: the primary key is
+  not part of `fields`, `rows()` or `records()`
+* Hidden identity and snapshot columns are carried through native row filters,
+  `sort` and `field_filter` (including renames)
+* Commit updates only the changed physical columns of the matching original
+  row; optimistic conflict detection reports externally modified or deleted
+  rows as `EditConflictError`; the whole batch is applied in one transaction
+* Aggregation, join, distinct and union results are explicitly read-only
+  (`NotEditableError` on modification)
+* On SQLite, tables without a primary key fall back to the implicit `rowid` as
+  the row identity; an explicit `key=` can be used for composite identity
+* Added `NotEditableError` and `EditConflictError`
+
+Operations
+----------
+
+* New `as_editable` operation with `sql_table` and `sql` signatures
+* `filter_by_set` and `filter_by_range` implemented for `sql`
+* Fixed `insert` for `sql` sources (`src` vs `source` name error)
+
 0.2
 ===
 

@@ -71,6 +71,20 @@ class RepresentationError(DataObjectError):
     representation"""
     pass
 
+class NotEditableError(DataObjectError):
+    """Raised when a data object can not be edited because its result can not
+    be uniquely written back to the source (aggregation, join, union, ...)."""
+    pass
+
+class EditConflictError(DataObjectError):
+    """Raised when a record can not be written back because the original row
+    was modified or deleted in the meantime. The whole submitted batch is
+    rolled back."""
+    def __init__(self, message=None, key=None, changes=None):
+        super(EditConflictError, self).__init__(message)
+        self.key = key
+        self.changes = changes
+
 #
 # Operations errors
 #

@@ -5,6 +5,7 @@ from ...metadata import Field, FieldList, FieldFilter
 from ...metadata import prepare_aggregation_list, prepare_order_list
 from ...objects import IterableDataSource
 from ...errors import *
+from .objects import InsertFromSelect
 from .utils import prepare_key, zip_condition, join_on_clause
 
 try:
@@ -86,7 +87,7 @@ def _(ctx, src, field, low, high, discard=False):
     """Filter by range: field should be between low and high."""
 
     statement = src.sql_statement()
-    key_column = statement.c[str(key)]
+    key_column = statement.c[str(field)]
 
     if low is not None and high is None:
         cond = key_column >= low
@@ -108,8 +109,22 @@ def _(ctx, src, field, low, high, discard=False):
 
 
 @filter_by_set.register("sql")
-def _(ctx, obj, key, value_set, discard=False):
-    raise RetryOperation(["rows"], reason="Not implemented")
+def _(ctx, obj, field, values, discard=False):
+    """Filter rows where `field` belongs to `values`. If `discard` is
+    ``True`` then the matching rows are discarded instead."""
+
+    statement = obj.sql_statement()
+    column = statement.c[str(field)]
+
+    cond = column.in_(list(values))
+    if discard:
+        cond = sql.expression.not_(cond)
+
+    statement = sql.expression.select(list(statement.columns),
+                                      from_obj=statement,
+                                      whereclause=cond)
+
+    return obj.clone_statement(statement=statement)
 
 
 @filter_not_empty.register("sql")
@@ -409,7 +424,7 @@ def _(ctx, master, detail, master_key, detail_key):
     # master table.
 
     out_fields = master.fields.clone()
-    selection = list(master_stat.columns)
+    selection = [master_stat.c[str(field)] for field in master.fields]
     for field in detail.fields:
         if str(field) not in detail_key:
             out_fields.append(field)
@@ -834,7 +849,7 @@ def _(ctx, obj):
 
 @insert.register("sql", "sql")
 def _(ctx, source, target):
-    if not target.can_compose(src):
+    if not target.can_compose(source):
         raise RetryOperation(["rows"])
 
     # Flush all data that were added through append() to preserve
@@ -876,3 +891,31 @@ def _(ctx, source, target):
     target.flush()
 
     return target
+
+
+#############################################################################
+# Editing
+
+
+@as_editable.register("sql_table")
+def _(ctx, obj, key=None):
+    """Returns an editable view of a table. See
+    :class:`bubbles.backends.sql.editable.EditableSQLTable`."""
+    return obj.as_editable(key=key)
+
+
+@as_editable.register("sql")
+def _(ctx, obj, key=None):
+    """Editable statements pass through; ordinary statements can not be
+    written back uniquely, so an explicitly read-only view is returned."""
+    from .editable import EditableSQLStatement
+
+    if isinstance(obj, EditableSQLStatement):
+        return obj
+
+    fields = obj.fields.clone()
+    return EditableSQLStatement(obj.sql_statement(), obj.store, fields=fields,
+                                schema=obj.schema,
+                                not_editable_reason="source is a SQL "
+                                    "statement without a unique table identity")
+

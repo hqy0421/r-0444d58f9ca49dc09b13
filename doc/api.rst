@@ -25,6 +25,15 @@ Objects
 
 .. autofunction:: bubbles.shared_representations
 
+Editable SQL objects
+--------------------
+
+.. autoclass:: bubbles.backends.sql.editable.EditableSQLTable
+
+.. autoclass:: bubbles.backends.sql.editable.EditableSQLStatement
+
+.. autoclass:: bubbles.backends.sql.editable.EditableRecord
+
 Stores
 ------
 

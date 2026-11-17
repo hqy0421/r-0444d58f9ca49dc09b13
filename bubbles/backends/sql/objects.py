@@ -635,6 +635,10 @@ class SQLTable(SQLDataObject):
             else:
                 self.table = table
 
+            # NOTE: fields are always reflected from the table (including an
+            # auto-increment key added by `store.create(id_column=...)`), which
+            # preserves the ordinary read behaviour. Use an editable view for
+            # a layout that hides the identity column.
             if not self.fields:
                 self.fields = reflect_fields(self.table)
 
@@ -666,6 +670,21 @@ class SQLTable(SQLDataObject):
 
     def sql_table(self):
         return self.table
+
+    def as_editable(self, key=None):
+        """Returns an opt-in editable view of the table. See
+        :class:`bubbles.backends.sql.editable.EditableSQLTable` for details.
+
+        The editable view exposes the same public fields, rows and records as
+        the table does, but the identity (primary key) column is hidden. Its
+        records can be modified and committed back to the original rows.
+
+        * `key`: optional list of columns that uniquely identify a row. If not
+          specified, the primary key is used; on SQLite a table without a
+          primary key falls back to the implicit ``rowid``.
+        """
+        from .editable import EditableSQLTable
+        return EditableSQLTable(self, key=key)
 
     def __len__(self):
         """Returns number of rows in a table"""
